@@ -1,0 +1,8 @@
+mail_servers:
+  address: 'smtp.exmail.qq.com'
+  port: '25'
+  domain: 'mail.qq.com'
+  user_name: 'etl_with_ruby@qq.com'
+  password: '@#$'
+  enable_starttls_auto: true
+  openssl_verify_mode: 'none'

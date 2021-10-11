@@ -1,0 +1,18 @@
+mysql: &db_config
+  adapter: mysql2
+  pool: 5
+  timeout: 5000
+
+dest:
+  <<: *db_config
+  database: etl_with_ruby
+  username: etl_dest
+  password: zhimakaimen
+  host: 127.0.0.1
+
+source:
+  <<: *db_config
+  database: etl_with_ruby
+  username: etl_source
+  password: jiubugaosuni
+  host: 127.0.0.1
