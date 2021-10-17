@@ -12,7 +12,16 @@ namespace :db do
   task :environment do
     # Take in specified database as an argument
     # DB = ENV['db']
-    # MIGRATIONS_DIR = 'db/migrate/'
+    MIGRATIONS_DIR = 'db/migrate/'
+  end
+
+  desc 'Init, checking directory and config files'
+  task :init=> :environment do 
+    # puts Dir.exist? MIGRATIONS_DIR    
+    MIGRATIONS_DIR.split('/').each {|d| 
+      Dir.mkdir(d) unless Dir.exist? d
+      Dir.chdir(d)
+    }
   end
 
   desc "Migrate the database"
