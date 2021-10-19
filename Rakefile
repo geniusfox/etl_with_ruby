@@ -1,4 +1,5 @@
 require "active_record"
+require File.expand_path('../boot',__FILE__)
 
 namespace :db do
 
@@ -13,16 +14,17 @@ namespace :db do
     # Take in specified database as an argument
     # DB = ENV['db']
     MIGRATIONS_DIR = 'db/migrate/'
+    MODEL_DIR = 'app/model/'
   end
 
-  desc 'Init, checking directory and config files'
-  task :init=> :environment do 
-    # puts Dir.exist? MIGRATIONS_DIR    
-    MIGRATIONS_DIR.split('/').each {|d| 
-      Dir.mkdir(d) unless Dir.exist? d
-      Dir.chdir(d)
-    }
-  end
+  # desc 'Init, checking directory and config files'
+  # task :init=> :environment do 
+  #   # puts Dir.exist? MIGRATIONS_DIR    
+  #   MIGRATIONS_DIR.split('/').each {|d| 
+  #     Dir.mkdir(d) unless Dir.exist? d
+  #     Dir.chdir(d)
+  #   }
+  # end
 
   desc "Migrate the database"
   task :migrate => :environment do
@@ -35,6 +37,7 @@ namespace :db do
     ActiveRecord::Migrator.new(:up, migrations, nil).migrate
     puts "Database migrated."
   end
+  
 
   desc "RollBack database"
   task :rollback => :environment do
@@ -62,6 +65,25 @@ namespace :db do
     abort # needed stop other tasks
   end
 
+  desc 'Generte app/model '
+  task :generate_model do
+    name = ARGV[1] || raise("Specify name: rake g:migration your_migration")
+    path = File.expand_path("../app/model/#{name}.rb", __FILE__)
+
+    activerecode_class = name.split("_").map(&:capitalize).join
+
+    File.open(path, 'w') do |file|
+      file.write <<-EOF
+      #!/bin/ruby
+      
+      class #{activerecode_class} < EtlPipline
+      end
+      EOF
+    end
+    puts "Activerecode  #{path} created"
+    abort # needed stop other tasks
+  end
+
   # desc "Reset the database"
   # task :reset => [:drop, :create, :migrate]
 
@@ -78,4 +100,11 @@ end
 
 
 namespace :etl do
+  desc '默认运行指定ActiveRecode对象的etl_pipline'
+  #rake etl:run_etl_pipline\[SampleUser\]
+  task :run_etl_pipline, [:model_name] do |t, args|
+    # puts "loading :#{args.model_name}"
+    obj = Object.const_get(args.model_name)
+    obj.new.etl_pipline
+  end
 end

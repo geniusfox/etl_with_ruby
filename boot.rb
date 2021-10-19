@@ -5,15 +5,20 @@ require 'yaml'
 require 'logger'
 
 
-###建立source目标数据库的连接，承担在source库执行SQL的任务 ###
+###建立source目标数据库的连接，承担在source库执行SQL的任务
 class EtlData < ActiveRecord::Base
   self.table_name = 'users'
   establish_connection(YAML::load(File.open('database.yml'))['source'])
 end
 
 
-### 所有Etl任务的模版，默认的数据库操作目标是dest库 ###
-class EtlMaker < ActiveRecord::Base
+=begin
+所有Etl任务的模版，默认的数据库操作目标是dest库,基本结构支持
+* 指定sep_flag标签，默认以天为单位切割数据
+* 按照sep_flag清除数据后，按照默认条件抽取数据后直接插入
+=end
+class EtlPipline < ActiveRecord::Base
+
   ActiveRecord::Base.logger= Logger.new(STDOUT)
   ActiveRecord::Base.logger.level = Logger::INFO if ENV["debug"].nil?
   # ActiveRecord::Base.logger.level = Logger::DEBUG unless ENV["debug"].nil?
@@ -48,6 +53,16 @@ class EtlMaker < ActiveRecord::Base
       yield(item)
     end
   end
+
+  #根据数据表的分割标志，构造抽取的SQL串,每个pipline必须实现的方法
+  def build_sql_with_seg(seg_data)
+    raise('You must implement sql!')
+  end
+
+
+  def etl_pipline()
+    puts "running etl_pipline"
+  end
 end
 
 
@@ -73,9 +88,8 @@ end
 Connection.connect
 
 #加载modle目录下的所有ruby文件
-# recursively requires all files in ./lib and down that end in .rb
-# Dir.glob('./lib/*').each do |folder|
-#   Dir.glob(folder +"/*.rb").each do |file|
-#     require file
-#   end
-# end
+# recursively requires all files in app/model/*.rb and down that end in .rb
+Dir.glob('./app/model/*.rb') do |active_recode_file|
+  # puts "loading file #{active_recode_file}"
+  require active_recode_file
+end
