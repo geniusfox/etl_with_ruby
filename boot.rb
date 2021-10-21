@@ -47,7 +47,8 @@ class EtlPipline < ActiveRecord::Base
 
   #通过SQL直接从source数据源抽取数据
   def etl(find_sql)
-    trans = EtlData.find_by_sql(find_sql)
+    # trans = EtlData.find_by_sql(find_sql)
+    trans = EtlData.connection.select_all(find_sql)
     logger.debug(find_sql)
     trans.each do |item|
       yield(item)
@@ -61,7 +62,16 @@ class EtlPipline < ActiveRecord::Base
 
 
   def etl_pipline()
-    puts "running etl_pipline"
+    # self.delete_all
+    etl(build_sql_with_seg("")){|item|
+      dest = self.class.new
+      item.keys.each{|col_name| dest.send("#{col_name}=", item[col_name])}
+      dest.save!
+      # keys.each{|col_name| 
+      #   td.send("#{col_name}=", item.send(col_name)) unless exclude_columns.include?(col_name)
+      # }
+    }
+    #puts "running etl_pipline"
   end
 end
 

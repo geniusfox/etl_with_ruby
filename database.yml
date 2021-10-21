@@ -5,14 +5,14 @@ mysql: &db_config
 
 dest:
   <<: *db_config
-  database: etl_with_ruby
+  database: etl_with_ruby_dest
   username: etl_dest
   password: zhimakaimen
   host: 127.0.0.1
 
 source:
   <<: *db_config
-  database: etl_with_ruby
+  database: etl_with_ruby_source
   username: etl_source
   password: jiubugaosuni
   host: 127.0.0.1
