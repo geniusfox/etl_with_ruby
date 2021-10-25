@@ -105,6 +105,6 @@ namespace :etl do
   task :run_etl_pipline, [:model_name] do |t, args|
     # puts "loading :#{args.model_name}"
     obj = Object.const_get(args.model_name)
-    obj.new.etl_pipline
+    obj.new.etl_pipline Time.new.strftime("%Y-%m-%d")
   end
 end

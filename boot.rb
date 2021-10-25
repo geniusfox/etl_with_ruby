@@ -14,42 +14,52 @@ end
 
 =begin
 所有Etl任务的模版，默认的数据库操作目标是dest库,基本结构支持
-* 指定sep_flag标签，默认以天为单位切割数据
-* 按照sep_flag清除数据后，按照默认条件抽取数据后直接插入
+* 指定seg_tag标签，默认以天为单位切割数据
+* 按照seg_tag清除数据后，按照默认条件抽取数据后直接插入
 =end
 class EtlPipline < ActiveRecord::Base
+
+  # after_initialize @seg_tag='seg_tag'
 
   ActiveRecord::Base.logger= Logger.new(STDOUT)
   ActiveRecord::Base.logger.level = Logger::INFO if ENV["debug"].nil?
   # ActiveRecord::Base.logger.level = Logger::DEBUG unless ENV["debug"].nil?
 
-  def self.primary_key=(key)
-    @primary_key = key
-  end
+  # self.seg_column_name='seg_tag'
 
-  def self.set_atts(pk, kws={})
-    item = self.where(@primary_key=>pk)
-    if(item.size ==1)
-      self.update_atts(pk, kws, item)
-    else
-     item = create({@primary_key => pk}.merge(kws))
-    end
-  end
+  # def self.primary_key=(key)
+  #   @primary_key = key
+  # end
+
+  # #考虑历史表单的存在，可以指定切割的表字段
+  # def self.seg_column_name=(new_name)
+  #   @seg_tag = new_tag
+  # end
+
+  # def self.set_atts(pk, kws={})
+  #   item = self.where(@primary_key=>pk)
+  #   if(item.size ==1)
+  #     self.update_atts(pk, kws, item)
+  #   else
+  #    item = create({@primary_key => pk}.merge(kws))
+  #   end
+  # end
 
 
-  def self.update_atts(pk, kws ={}, find_item =nil)
-    item = find_item|| self.where(@primary_key=>pk)
-    if(item.size ==1)
-      item.first.attributes = kws
-      item.first.save
-    end
-  end
+  # def self.update_atts(pk, kws ={}, find_item =nil)
+  #   item = find_item|| self.where(@primary_key=>pk)
+  #   if(item.size ==1)
+  #     item.first.attributes = kws
+  #     item.first.save
+  #   end
+  # end
 
   #通过SQL直接从source数据源抽取数据
-  def etl(find_sql)
+  def extract(find_sql)
     # trans = EtlData.find_by_sql(find_sql)
     trans = EtlData.connection.select_all(find_sql)
-    logger.debug(find_sql)
+    logger.debug("Source: #{find_sql}")
+    logger.info("Source: mathced records:#{trans.length}")
     trans.each do |item|
       yield(item)
     end
@@ -60,18 +70,37 @@ class EtlPipline < ActiveRecord::Base
     raise('You must implement sql!')
   end
 
+  #单行数据的转化，如lastname和first_name字段合成user_name
+  def transform(source_row)
+  end
 
-  def etl_pipline()
-    # self.delete_all
-    etl(build_sql_with_seg("")){|item|
+
+  #根据指定的切割日期或者其他条件运行etl，如抽取指定日期的订单导入数据仓库
+  def etl_pipline(seg_data)
+    logger.info("##################################################################")
+    logger.info("")
+    delete_rows = self.class.where(:seg_name=>seg_data).delete_all
+    logger.info("Clean: #{delete_rows} with #{seg_data}")
+    sucess,failed = 0,0
+    col_keys = self.class.column_names.select{|k| !['id','seg_name'].include? k }
+    extract(build_sql_with_seg(seg_data)){|item|
       dest = self.class.new
-      item.keys.each{|col_name| dest.send("#{col_name}=", item[col_name])}
-      dest.save!
-      # keys.each{|col_name| 
-      #   td.send("#{col_name}=", item.send(col_name)) unless exclude_columns.include?(col_name)
-      # }
+      begin 
+        transform(item) #字段变换
+        col_keys.each{|att_name| 
+          dest.send("#{att_name}=", item[att_name]) if item.has_key? att_name
+        } 
+        dest.seg_name = seg_data #统一设置切分数据段的标志
+        dest.save!
+      rescue Exception => e
+        failed +=1     
+        logger.error(e.message)  
+      end
+      sucess+=1
     }
-    #puts "running etl_pipline"
+    logger.info("Write:success:#{sucess}, failed:#{failed}")
+    logger.info("")
+    logger.info("##################################################################")
   end
 end
 
@@ -101,5 +130,5 @@ Connection.connect
 # recursively requires all files in app/model/*.rb and down that end in .rb
 Dir.glob('./app/model/*.rb') do |active_recode_file|
   # puts "loading file #{active_recode_file}"
-  require active_recode_file
+  require active_recode_file 
 end
