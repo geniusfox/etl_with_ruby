@@ -53,12 +53,14 @@ namespace :db do
 
     File.open(path, 'w') do |file|
       file.write <<-EOF
-      class #{migration_class} < ActiveRecord::Migration[4.2]
-        def self.up
-        end
-        def self.down
-        end
-      end
+class #{migration_class} < ActiveRecord::Migration[4.2]
+  
+  def self.up
+  end
+
+  def self.down
+  end
+end
       EOF
     end
     puts "Migration #{path} created"
@@ -74,10 +76,18 @@ namespace :db do
 
     File.open(path, 'w') do |file|
       file.write <<-EOF
-      #!/bin/ruby
-      
-      class #{activerecode_class} < EtlPipline
-      end
+#!/bin/ruby
+
+class #{activerecode_class} < ActiveRecord::Base
+  include EtlPipline
+
+  def build_sql_with_seg(seg_data)
+    raise('You must implement sql!')
+  end
+
+  def transform(row)
+  end
+end
       EOF
     end
     puts "Activerecode  #{path} created"

@@ -12,46 +12,27 @@ class EtlData < ActiveRecord::Base
 end
 
 
+module EtlPipline 
+  # attr_accessor :seg_column_name
+  # self.seg_column_name= 'seg_name'
+
 =begin
 所有Etl任务的模版，默认的数据库操作目标是dest库,基本结构支持
 * 指定seg_tag标签，默认以天为单位切割数据
 * 按照seg_tag清除数据后，按照默认条件抽取数据后直接插入
 =end
-class EtlPipline < ActiveRecord::Base
+# class EtlPipline < ActiveRecord::Base
 
   # after_initialize @seg_tag='seg_tag'
 
   ActiveRecord::Base.logger= Logger.new(STDOUT)
   ActiveRecord::Base.logger.level = Logger::INFO if ENV["debug"].nil?
-  # ActiveRecord::Base.logger.level = Logger::DEBUG unless ENV["debug"].nil?
 
-  # self.seg_column_name='seg_tag'
+  # Seg_name = 'seg_name'
+  # self.seg_name = 'seg_tag'
 
-  # def self.primary_key=(key)
-  #   @primary_key = key
-  # end
-
-  # #考虑历史表单的存在，可以指定切割的表字段
-  # def self.seg_column_name=(new_name)
-  #   @seg_tag = new_tag
-  # end
-
-  # def self.set_atts(pk, kws={})
-  #   item = self.where(@primary_key=>pk)
-  #   if(item.size ==1)
-  #     self.update_atts(pk, kws, item)
-  #   else
-  #    item = create({@primary_key => pk}.merge(kws))
-  #   end
-  # end
-
-
-  # def self.update_atts(pk, kws ={}, find_item =nil)
-  #   item = find_item|| self.where(@primary_key=>pk)
-  #   if(item.size ==1)
-  #     item.first.attributes = kws
-  #     item.first.save
-  #   end
+  # def seg_name=(new_seg=nil)
+  #   self.seg_name= new_seg
   # end
 
   #通过SQL直接从source数据源抽取数据
@@ -102,6 +83,7 @@ class EtlPipline < ActiveRecord::Base
     logger.info("")
     logger.info("##################################################################")
   end
+
 end
 
 
