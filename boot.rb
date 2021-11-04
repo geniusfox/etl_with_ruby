@@ -12,9 +12,20 @@ class EtlData < ActiveRecord::Base
 end
 
 
-module EtlPipline 
-  # attr_accessor :seg_column_name
-  # self.seg_column_name= 'seg_name'
+module EtlPipline
+  extend ActiveSupport::Concern
+  attr_accessor :seg_name
+
+  # module ClassMethods
+  #   def seg_column_name_as(new_name=nil)
+  #     self.seg_name = new_name.to_sym unless new_name.nil?
+  #   end
+  #
+  # end
+
+  included do
+    class_attribute:seg_name, instance_accessor: false, default: "seg_date"
+  end
 
 =begin
 所有Etl任务的模版，默认的数据库操作目标是dest库,基本结构支持
@@ -60,22 +71,24 @@ module EtlPipline
   def etl_pipline(seg_data)
     logger.info("##################################################################")
     logger.info("")
-    delete_rows = self.class.where(:seg_name=>seg_data).delete_all
+    seg_column_name = self.class.seg_name
+    delete_rows = self.class.where(seg_column_name.to_sym =>seg_data).delete_all
     logger.info("Clean: #{delete_rows} with #{seg_data}")
     sucess,failed = 0,0
-    col_keys = self.class.column_names.select{|k| !['id','seg_name'].include? k }
+    col_keys = self.class.column_names.select{|k| !['id',seg_column_name].include? k }
     extract(build_sql_with_seg(seg_data)){|item|
       dest = self.class.new
-      begin 
+      begin
         transform(item) #字段变换
-        col_keys.each{|att_name| 
+        col_keys.each{|att_name|
           dest.send("#{att_name}=", item[att_name]) if item.has_key? att_name
-        } 
-        dest.seg_name = seg_data #统一设置切分数据段的标志
+        }
+        # dest.seg_name = seg_data #统一设置切分数据段的标志
+        dest.send("#{seg_column_name}=", seg_data) #统一设置切分数据段的标志
         dest.save!
       rescue Exception => e
-        failed +=1     
-        logger.error(e.message)  
+        failed +=1
+        logger.error(e.message)
       end
       sucess+=1
     }
@@ -112,5 +125,5 @@ Connection.connect
 # recursively requires all files in app/model/*.rb and down that end in .rb
 Dir.glob('./app/model/*.rb') do |active_recode_file|
   # puts "loading file #{active_recode_file}"
-  require active_recode_file 
+  require active_recode_file
 end
