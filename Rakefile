@@ -18,9 +18,9 @@ namespace :db do
   end
 
   # desc 'Init, checking directory and config files'
-  # task :init=> :environment do 
-  #   # puts Dir.exist? MIGRATIONS_DIR    
-  #   MIGRATIONS_DIR.split('/').each {|d| 
+  # task :init=> :environment do
+  #   # puts Dir.exist? MIGRATIONS_DIR
+  #   MIGRATIONS_DIR.split('/').each {|d|
   #     Dir.mkdir(d) unless Dir.exist? d
   #     Dir.chdir(d)
   #   }
@@ -37,31 +37,35 @@ namespace :db do
     ActiveRecord::Migrator.new(:up, migrations, nil).migrate
     puts "Database migrated."
   end
-  
+
 
   desc "RollBack database"
   task :rollback => :environment do
     ActiveRecord::Migration.verbose = true
   end
 
+  require 'erb'
   desc "Generate db/migrate and active_modle file."
   task :generate do
     name = ARGV[1] || raise("Specify name: rake g:migration your_migration")
     timestamp = Time.now.strftime("%Y%m%d%H%M%S")
     path = File.expand_path("../db/migrate/#{timestamp}_#{name}.rb", __FILE__)
     migration_class = name.split("_").map(&:capitalize).join
+    class MigrateGTData
+      attr_accessor :migration_class
+      def initialize(class_name)
+        @migration_class = class_name
+      end
 
+      def build
+        template = ERB.new(File.read("migration.rb.tt"))
+        return template.result(binding)
+      end
+    end
+    generator = MigrateGTData.new(migration_class)
+    # puts template.result
     File.open(path, 'w') do |file|
-      file.write <<-EOF
-class #{migration_class} < ActiveRecord::Migration[4.2]
-  
-  def self.up
-  end
-
-  def self.down
-  end
-end
-      EOF
+      file.write generator.build
     end
     puts "Migration #{path} created"
     abort # needed stop other tasks
@@ -73,22 +77,20 @@ end
     path = File.expand_path("../app/model/#{name}.rb", __FILE__)
 
     activerecode_class = name.split("_").map(&:capitalize).join
+    class ActiveRecordGTData
+      attr_accessor :activerecode_class
+      def initialize(class_name)
+        @activerecode_class = class_name
+      end
 
+      def build
+        template = ERB.new(File.read("active_model.rb.tt"))
+        return template.result(binding)
+      end
+    end
+    generator = ActiveRecordGTData.new(activerecode_class)
     File.open(path, 'w') do |file|
-      file.write <<-EOF
-#!/bin/ruby
-
-class #{activerecode_class} < ActiveRecord::Base
-  include EtlPipline
-
-  def build_sql_with_seg(seg_data)
-    raise('You must implement sql!')
-  end
-
-  def transform(row)
-  end
-end
-      EOF
+      file.write generator.build
     end
     puts "Activerecode  #{path} created"
     abort # needed stop other tasks
