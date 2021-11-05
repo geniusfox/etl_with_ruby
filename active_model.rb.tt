@@ -1,0 +1,12 @@
+#!/bin/ruby
+
+class <%=activerecode_class%> < ActiveRecord::Base
+  include EtlPipline
+
+  def build_sql_with_seg(seg_data)
+    raise('You must implement sql!')
+  end
+
+  def transform(row)
+  end
+end
