@@ -1,2 +1,5 @@
 
 db/migrate/*.rb
+app/model/*.rb
+Gemfile.lock
+test.rb
